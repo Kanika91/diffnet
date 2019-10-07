@@ -56,6 +56,8 @@ def start(conf, data, model, evaluate):
     print()
     log.record('Following will output the evaluation of the model:')
 
+    min_val_loss = 1000000
+    min_epoch = 0
     # Start Training !!!
     for epoch in range(1, conf.epochs+1):
         # optimize model with training data and compute train loss
@@ -85,12 +87,16 @@ def start(conf, data, model, evaluate):
             val_feed_dict[key] = d_val.data_dict[value]
         val_loss = sess.run(model.map_dict['out']['val'], feed_dict=val_feed_dict)
 
-        d_test.getVTRankingOneBatch()
-        d_test.linkedMap()
-        test_feed_dict = {}
-        for (key, value) in model.map_dict['test'].items():
-            test_feed_dict[key] = d_test.data_dict[value]
-        test_loss = sess.run(model.map_dict['out']['test'], feed_dict=test_feed_dict)
+        if val_loss < min_val_loss:
+            min_loss = val_loss
+            d_test.getVTRankingOneBatch()
+            d_test.linkedMap()
+            test_feed_dict = {}
+            for (key, value) in model.map_dict['test'].items():
+                test_feed_dict[key] = d_test.data_dict[value]
+            test_loss = sess.run(model.map_dict['out']['test'], feed_dict=test_feed_dict)
+            min_epoch = epoch
+
         t2 = time()
 
 
@@ -130,22 +136,27 @@ def start(conf, data, model, evaluate):
 
         tt2 = time()
 
-        index_dict = d_test_eva.eva_index_dict
-
-        positive_predictions = getPositivePredictions()
-        #print(positive_predictions)
-        #import pdb; pdb.set_trace()
-        negative_predictions = getNegativePredictions()
-
-        d_test_eva.index = 0 # !!!important, prepare for new batch
-        hr, ndcg, auc = evaluate.evaluateRankingPerformance(\
-            index_dict, positive_predictions, negative_predictions, conf.topk, conf.num_procs)
-        tt3 = time()
-
-        # print log to console and log_file
         log.record('Epoch:%d, compute loss cost:%.4fs, train loss:%.4f, val loss:%.4f, test loss:%.4f' % \
             (epoch, (t2-t0), train_loss, val_loss, test_loss))
-        log.record('Evaluate cost:%.4fs, hr:%.4f, ndcg:%.4f, auc:%.4f' % ((tt3-tt2), hr, ndcg, auc))
 
+        if val_loss < min_val_loss:
+            index_dict = d_test_eva.eva_index_dict
+
+            positive_predictions = getPositivePredictions()
+            #print(positive_predictions)
+            #import pdb; pdb.set_trace()
+            negative_predictions = getNegativePredictions()
+
+            d_test_eva.index = 0 # !!!important, prepare for new batch
+            hr, ndcg, auc = evaluate.evaluateRankingPerformance(\
+                index_dict, positive_predictions, negative_predictions, conf.topk, conf.num_procs)
+            tt3 = time()
+
+            # print log to console and log_file
+            log.record('Evaluate cost:%.4fs, hr:%.4f, ndcg:%.4f, auc:%.4f' % ((tt3-tt2), hr, ndcg, auc))
+
+        if epoch - min_epoch > 10:
+            print("Early stop")
+            exit()
         ## reset train data pointer, and generate new negative data
         d_train.generateTrainNegative()
