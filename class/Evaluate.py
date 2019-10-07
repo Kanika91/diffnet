@@ -1,6 +1,6 @@
 '''
     author: Peijie Sun
-    e-mail: sun.hfut@gmail.com 
+    e-mail: sun.hfut@gmail.com
     released date: 04/18/2019
 '''
 
@@ -25,12 +25,15 @@ class Evaluate():
         hit = 1.0
         return hit
 
+    def get_auc(self, ranking, items):
+        return (ranking)/ float(items)
+
     def evaluateRankingPerformance(self, evaluate_index_dict, evaluate_real_rating_matrix, \
         evaluate_predict_rating_matrix, topK, num_procs, exp_flag=0, sp_name=None, result_file=None):
         user_list = list(evaluate_index_dict.keys())
         batch_size = len(user_list) / num_procs
 
-        hr_list, ndcg_list = [], []
+        hr_list, ndcg_list, auc_list = [], [], []
         index = 0
         for _ in range(num_procs):
             if index + batch_size < len(user_list):
@@ -38,28 +41,39 @@ class Evaluate():
                 index = index + batch_size
             else:
                 batch_user_list = user_list[index:len(user_list)]
-            tmp_hr_list, tmp_ndcg_list = self.getHrNdcgProc(evaluate_index_dict, evaluate_real_rating_matrix, \
+            tmp_hr_list, tmp_ndcg_list, tmp_auc_list = self.getHrNdcgProc(evaluate_index_dict, evaluate_real_rating_matrix, \
                 evaluate_predict_rating_matrix, topK, batch_user_list)
             hr_list.extend(tmp_hr_list)
             ndcg_list.extend(tmp_ndcg_list)
-        return np.mean(hr_list), np.mean(ndcg_list)
+            auc_list.extend(tmp_auc_list)
+        return np.mean(hr_list), np.mean(ndcg_list), np.mean(auc_list)
 
-    def getHrNdcgProc(self, 
-        evaluate_index_dict, 
+    def getHrNdcgProc(self,
+        evaluate_index_dict,
         evaluate_real_rating_matrix,
-        evaluate_predict_rating_matrix, 
-        topK, 
+        evaluate_predict_rating_matrix,
+        topK,
         user_list):
 
-        tmp_hr_list, tmp_ndcg_list = [], []
+        tmp_hr_list, tmp_ndcg_list, tmp_auc_list = [], [], []
 
         for u in user_list:
             real_item_index_list = evaluate_index_dict[u]
             real_item_rating_list = list(np.concatenate(evaluate_real_rating_matrix[real_item_index_list]))
             positive_length = len(real_item_rating_list)
             target_length = min(positive_length, topK)
-           
+
             predict_rating_list = evaluate_predict_rating_matrix[u]
+            real_item_rating_list.extend(predict_rating_list)
+            sort_index = np.argsort(real_item_rating_list)
+            #import ipdb; ipdb.set_trace()
+            ##For get_auc
+            sort_index = np.argsort(sort_index)
+            pos = sort_index[0]
+            tmp_auc_list.append(self.get_auc(pos, 5000))
+
+            real_item_rating_list = list(np.concatenate(evaluate_real_rating_matrix[real_item_index_list]))
+            predict_rating_list = evaluate_predict_rating_matrix[u][:99]
             real_item_rating_list.extend(predict_rating_list)
             sort_index = np.argsort(real_item_rating_list)
             sort_index = sort_index[::-1]
@@ -81,4 +95,4 @@ class Evaluate():
             tmp_hr_list.append(tmp_hr)
             tmp_ndcg_list.append(tmp_ndcg)
 
-        return tmp_hr_list, tmp_ndcg_list
+        return tmp_hr_list, tmp_ndcg_list, tmp_auc_list

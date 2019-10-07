@@ -1,6 +1,6 @@
 '''
     author: Peijie Sun
-    e-mail: sun.hfut@gmail.com 
+    e-mail: sun.hfut@gmail.com
     released date: 04/18/2019
 '''
 
@@ -11,8 +11,10 @@ sys.path.append(os.path.join(os.getcwd(), 'class'))
 from ParserConf import ParserConf
 from DataUtil import DataUtil
 from Evaluate import Evaluate
-
+import tensorflow as tf
+import numpy as np
 from diffnet import diffnet
+
 
 def executeTrainModel(config_path, model_name):
     print(config_path)
@@ -20,7 +22,7 @@ def executeTrainModel(config_path, model_name):
     conf = ParserConf(config_path)
     conf.parserConf()
     print conf.topk
-    
+
     #print('System start to load TensorFlow graph...')
     model = eval(model_name)
     model = model(conf)
@@ -37,13 +39,15 @@ if __name__ == "__main__":
     parser.add_argument('--data_name', nargs='?', help='data name')
     parser.add_argument('--model_name', nargs='?', help='model name')
     parser.add_argument('--gpu', nargs='?', help='available gpu id')
-
+    parser.add_argument('--seed', type=int, default=999 ,help='seed')
     args = parser.parse_args()
-
+    tf.set_random_seed(args.seed)
+    np.random.seed(args.seed)
+    
     data_name = args.data_name
     model_name = args.model_name
     device_id = args.gpu
-    
+
     if args.gpu:
         os.environ['CUDA_VISIBLE_DEVICES'] = device_id
     config_path = os.path.join(os.getcwd(), 'conf/%s_%s.ini' % (data_name, model_name))

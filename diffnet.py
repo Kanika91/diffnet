@@ -1,6 +1,6 @@
 '''
     author: Peijie Sun
-    e-mail: sun.hfut@gmail.com 
+    e-mail: sun.hfut@gmail.com
     released date: 04/18/2019
 '''
 import tensorflow as tf
@@ -13,6 +13,7 @@ class diffnet():
             'SOCIAL_NEIGHBORS_SPARSE_MATRIX',
             'CONSUMED_ITEMS_SPARSE_MATRIX'
         )
+
 
     def startConstructGraph(self):
         self.initializeNodes()
@@ -32,12 +33,12 @@ class diffnet():
         self.consumed_items_dense_shape = np.array([self.conf.num_users, self.conf.num_items]).astype(np.int64)
 
         self.social_neighbors_sparse_matrix = tf.SparseTensor(
-            indices = self.social_neighbors_indices_input, 
+            indices = self.social_neighbors_indices_input,
             values = self.social_neighbors_values_input,
             dense_shape=self.social_neighbors_dense_shape
         )
         self.consumed_items_sparse_matrix = tf.SparseTensor(
-            indices = self.consumed_items_indices_input, 
+            indices = self.consumed_items_indices_input,
             values = self.consumed_items_values_input,
             dense_shape=self.consumed_items_dense_shape
         )
@@ -52,7 +53,7 @@ class diffnet():
             self.social_neighbors_sparse_matrix, current_user_embedding
         )
         return user_embedding_from_social_neighbors
-    
+
     def generateUserEmebddingFromConsumedItems(self, current_item_embedding):
         user_embedding_from_consumed_items = tf.sparse_tensor_dense_matmul(
             self.consumed_items_sparse_matrix, current_item_embedding
@@ -69,11 +70,17 @@ class diffnet():
         self.item_embedding = tf.Variable(
             tf.random_normal([self.conf.num_items, self.conf.dimension], stddev=0.01), name='item_embedding')
 
-        self.user_review_vector_matrix = tf.constant(\
-            np.load(self.conf.user_review_vector_matrix), dtype=tf.float32)
-        self.item_review_vector_matrix = tf.constant(\
-            np.load(self.conf.item_review_vector_matrix), dtype=tf.float32)
+        #import pdb; pdb.set_trace()
+        #self.user_review_vector_matrix = tf.constant(\
+        #    np.load(self.conf.user_review_vector_matrix), dtype=tf.float32)
+        self.user_review_vector_matrix = tf.eye(self.conf.num_users, num_columns=self.conf.num_users)
+        print(self.user_review_vector_matrix.shape)
+        #self.item_review_vector_matrix = tf.constant(\
+        #    np.load(self.conf.item_review_vector_matrix), dtype=tf.float32)
+        self.item_review_vector_matrix = tf.eye(self.conf.num_items, num_columns=self.conf.num_items)
         self.reduce_dimension_layer = tf.layers.Dense(\
+            self.conf.dimension, activation=tf.nn.sigmoid, name='reduce_dimension_layer')
+        self.reduce_dimension_layer2 = tf.layers.Dense(\
             self.conf.dimension, activation=tf.nn.sigmoid, name='reduce_dimension_layer')
 
         self.item_fusion_layer = tf.layers.Dense(\
@@ -82,12 +89,16 @@ class diffnet():
             self.conf.dimension, activation=tf.nn.sigmoid, name='user_fusion_layer')
 
     def constructTrainGraph(self):
-        # handle review information, map the origin review into the new space and 
-        first_user_review_vector_matrix = self.convertDistribution(self.user_review_vector_matrix)
-        first_item_review_vector_matrix = self.convertDistribution(self.item_review_vector_matrix)
-        
+        # handle review information, map the origin review into the new space and
+        #first_user_review_vector_matrix = self.convertDistribution(self.user_review_vector_matrix)
+        #first_item_review_vector_matrix = self.convertDistribution(self.item_review_vector_matrix)
+
+        first_user_review_vector_matrix = self.user_review_vector_matrix
+        first_item_review_vector_matrix = self.item_review_vector_matrix
+
+
         self.user_reduce_dim_vector_matrix = self.reduce_dimension_layer(first_user_review_vector_matrix)
-        self.item_reduce_dim_vector_matrix = self.reduce_dimension_layer(first_item_review_vector_matrix)
+        self.item_reduce_dim_vector_matrix = self.reduce_dimension_layer2(first_item_review_vector_matrix)
 
         second_user_review_vector_matrix = self.convertDistribution(self.user_reduce_dim_vector_matrix)
         second_item_review_vector_matrix = self.convertDistribution(self.item_reduce_dim_vector_matrix)
@@ -115,6 +126,7 @@ class diffnet():
 
         predict_vector = tf.multiply(latest_user_latent, latest_item_latent)
         self.prediction = tf.sigmoid(tf.reduce_sum(predict_vector, 1, keepdims=True))
+        self.output = self.item_embedding
         #self.prediction = self.predict_rating_layer(tf.concat([latest_user_latent, latest_item_latent], 1))
 
         self.loss = tf.nn.l2_loss(self.labels_input - self.prediction)
@@ -131,32 +143,32 @@ class diffnet():
 
         for v in self.reduce_dimension_layer.variables:
             variables_dict[v.op.name] = v
-                
+
         self.saver = tf.train.Saver(variables_dict)
         ############################# Save Variables #################################
-    
+
     def defineMap(self):
         map_dict = {}
         map_dict['train'] = {
-            self.user_input: 'USER_LIST', 
-            self.item_input: 'ITEM_LIST', 
+            self.user_input: 'USER_LIST',
+            self.item_input: 'ITEM_LIST',
             self.labels_input: 'LABEL_LIST'
         }
-        
+
         map_dict['val'] = {
-            self.user_input: 'USER_LIST', 
-            self.item_input: 'ITEM_LIST', 
+            self.user_input: 'USER_LIST',
+            self.item_input: 'ITEM_LIST',
             self.labels_input: 'LABEL_LIST'
         }
 
         map_dict['test'] = {
-            self.user_input: 'USER_LIST', 
-            self.item_input: 'ITEM_LIST', 
+            self.user_input: 'USER_LIST',
+            self.item_input: 'ITEM_LIST',
             self.labels_input: 'LABEL_LIST'
         }
 
         map_dict['eva'] = {
-            self.user_input: 'EVA_USER_LIST', 
+            self.user_input: 'EVA_USER_LIST',
             self.item_input: 'EVA_ITEM_LIST'
         }
 

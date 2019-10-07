@@ -1,6 +1,6 @@
 '''
     author: Peijie Sun
-    e-mail: sun.hfut@gmail.com 
+    e-mail: sun.hfut@gmail.com
     released date: 04/18/2019
 '''
 
@@ -50,7 +50,7 @@ class DataModule():
         self.data_dict['USER_LIST'] = self.user_list
         self.data_dict['ITEM_LIST'] = self.item_list
         self.data_dict['LABEL_LIST'] = self.labels_list
-    
+
     def linkedRankingEvaMap(self):
         self.data_dict['EVA_USER_LIST'] = self.eva_user_list
         self.data_dict['EVA_ITEM_LIST'] = self.eva_item_list
@@ -66,7 +66,7 @@ class DataModule():
             total_user_list.add(int(arr[0]))
         self.total_user_list = list(total_user_list)
         self.hash_data = hash_data
-    
+
     def arrangePositiveData(self):
         positive_data = defaultdict(set)
         total_data = set()
@@ -76,7 +76,7 @@ class DataModule():
             positive_data[u].add(i)
         self.positive_data = positive_data
         self.total_data = len(total_data)
-    
+
     '''
         This function designes for the train/val/test negative generating section
     '''
@@ -96,7 +96,7 @@ class DataModule():
                 total_data.add((u, j))
         self.negative_data = negative_data
         self.terminal_flag = 1
-        
+
     '''
         This function designes for the val/test section, compute loss
     '''
@@ -114,11 +114,11 @@ class DataModule():
             user_list.extend([u] * len(negative_data[u]))
             item_list.extend(negative_data[u])
             labels_list.extend([0] * len(negative_data[u]))
-        
+
         self.user_list = np.reshape(user_list, [-1, 1])
         self.item_list = np.reshape(item_list, [-1, 1])
         self.labels_list = np.reshape(labels_list, [-1, 1])
-    
+
     '''
         This function designes for the training process
     '''
@@ -130,7 +130,7 @@ class DataModule():
         batch_size = self.conf.training_batch_size
 
         user_list, item_list, labels_list = [], [], []
-        
+
         if index + batch_size < len(total_user_list):
             target_user_list = total_user_list[index:index+batch_size]
             self.index = index + batch_size
@@ -146,11 +146,11 @@ class DataModule():
             user_list.extend([u] * len(negative_data[u]))
             item_list.extend(list(negative_data[u]))
             labels_list.extend([0] * len(negative_data[u]))
-        
+
         self.user_list = np.reshape(user_list, [-1, 1])
         self.item_list = np.reshape(item_list, [-1, 1])
         self.labels_list = np.reshape(labels_list, [-1, 1])
-    
+
     '''
         This function designes for the positive data in rating evaluate section
     '''
@@ -235,7 +235,7 @@ class DataModule():
         social_neighbors_dict = defaultdict(list)
         for u in social_neighbors:
             social_neighbors_dict[u] = sorted(social_neighbors[u])
-            
+
         user_list = sorted(list(social_neighbors.keys()))
         for user in user_list:
             for friend in social_neighbors_dict[user]:
@@ -243,12 +243,12 @@ class DataModule():
                 social_neighbors_values_list.append(1.0/len(social_neighbors_dict[user]))
         self.social_neighbors_indices_list = np.array(social_neighbors_indices_list).astype(np.int64)
         self.social_neighbors_values_list = np.array(social_neighbors_values_list).astype(np.float32)
-    
+
     '''
         Generate Consumed Items Sparse Matrix Indices and Values
     '''
     def generateConsumedItemsSparseMatrix(self):
-        positive_data = self.positive_data  
+        positive_data = self.positive_data
         consumed_items_indices_list = []
         consumed_items_values_list = []
         consumed_items_dict = defaultdict(list)

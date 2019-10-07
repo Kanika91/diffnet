@@ -1,6 +1,6 @@
 '''
     author: Peijie Sun
-    e-mail: sun.hfut@gmail.com 
+    e-mail: sun.hfut@gmail.com
     released date: 04/18/2019
 '''
 
@@ -10,7 +10,8 @@ from time import time
 import numpy as np
 import tensorflow as tf
 
-os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3' #ignore the warnings 
+
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3' #ignore the warnings
 
 from Logging import Logging
 
@@ -18,7 +19,7 @@ def start(conf, data, model, evaluate):
     log_dir = os.path.join(os.getcwd(), 'log')
     if not os.path.exists(log_dir):
         os.makedirs(log_dir)
-    # define log name 
+    # define log name
     log_path = os.path.join(os.getcwd(), 'log/%s_%s.log' % (conf.data_name, conf.model_name))
 
     # start to prepare data for training and evaluating
@@ -42,7 +43,7 @@ def start(conf, data, model, evaluate):
 
     # standard tensorflow running environment initialize
     tf_conf = tf.ConfigProto()
-    os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3' 
+    os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
     tf_conf.gpu_options.allow_growth = True
     sess = tf.Session(config=tf_conf)
     sess.run(model.init)
@@ -60,7 +61,7 @@ def start(conf, data, model, evaluate):
         # optimize model with training data and compute train loss
         tmp_train_loss = []
         t0 = time()
-
+        print("Computing for epoch: ", epoch)
         #tmp_total_list = []
         while d_train.terminal_flag:
             d_train.getTrainRankingBatch()
@@ -91,6 +92,7 @@ def start(conf, data, model, evaluate):
             test_feed_dict[key] = d_test.data_dict[value]
         test_loss = sess.run(model.map_dict['out']['test'], feed_dict=test_feed_dict)
         t2 = time()
+
 
         # start evaluate model performance, hr and ndcg
         def getPositivePredictions():
@@ -129,18 +131,21 @@ def start(conf, data, model, evaluate):
         tt2 = time()
 
         index_dict = d_test_eva.eva_index_dict
+
         positive_predictions = getPositivePredictions()
+        #print(positive_predictions)
+        #import pdb; pdb.set_trace()
         negative_predictions = getNegativePredictions()
 
         d_test_eva.index = 0 # !!!important, prepare for new batch
-        hr, ndcg = evaluate.evaluateRankingPerformance(\
+        hr, ndcg, auc = evaluate.evaluateRankingPerformance(\
             index_dict, positive_predictions, negative_predictions, conf.topk, conf.num_procs)
         tt3 = time()
-                
+
         # print log to console and log_file
         log.record('Epoch:%d, compute loss cost:%.4fs, train loss:%.4f, val loss:%.4f, test loss:%.4f' % \
             (epoch, (t2-t0), train_loss, val_loss, test_loss))
-        log.record('Evaluate cost:%.4fs, hr:%.4f, ndcg:%.4f' % ((tt3-tt2), hr, ndcg))
+        log.record('Evaluate cost:%.4fs, hr:%.4f, ndcg:%.4f, auc:%.4f' % ((tt3-tt2), hr, ndcg, auc))
 
         ## reset train data pointer, and generate new negative data
         d_train.generateTrainNegative()
