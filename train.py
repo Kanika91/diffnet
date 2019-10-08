@@ -88,7 +88,6 @@ def start(conf, data, model, evaluate):
         val_loss = sess.run(model.map_dict['out']['val'], feed_dict=val_feed_dict)
 
         if val_loss < min_val_loss:
-            min_loss = val_loss
             d_test.getVTRankingOneBatch()
             d_test.linkedMap()
             test_feed_dict = {}
@@ -140,6 +139,7 @@ def start(conf, data, model, evaluate):
             (epoch, (t2-t0), train_loss, val_loss, test_loss))
 
         if val_loss < min_val_loss:
+	    min_val_loss = val_loss
             index_dict = d_test_eva.eva_index_dict
 
             positive_predictions = getPositivePredictions()
