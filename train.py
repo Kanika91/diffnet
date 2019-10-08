@@ -140,7 +140,7 @@ def start(conf, data, model, evaluate):
             (epoch, (t2-t0), train_loss, val_loss, test_loss))
 
         if val_loss < min_val_loss:
-            min_loss = val_loss
+            min_val_loss = val_loss
             index_dict = d_test_eva.eva_index_dict
 
             positive_predictions = getPositivePredictions()
