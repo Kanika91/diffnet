@@ -66,6 +66,7 @@ class DataModule():
             total_user_list.add(int(arr[0]))
         self.total_user_list = list(total_user_list)
         self.hash_data = hash_data
+        print("Length of data", len(hash_data))
 
     def arrangePositiveData(self):
         positive_data = defaultdict(set)

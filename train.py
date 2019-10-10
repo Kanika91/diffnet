@@ -35,7 +35,6 @@ def start(conf, data, model, evaluate):
     d_test_eva.initalizeRankingEva()
     t1 = time()
     print('Data has been loaded successfully, cost:%.4fs' % (t1 - t0))
-
     # prepare model necessary data.
     data_dict = d_train.prepareModelSupplement(model)
     model.inputSupply(data_dict)
@@ -66,6 +65,7 @@ def start(conf, data, model, evaluate):
         print("Computing for epoch: ", epoch)
         #tmp_total_list = []
         while d_train.terminal_flag:
+            import pdb; pdb.set_trace()
             d_train.getTrainRankingBatch()
             d_train.linkedMap()
 
